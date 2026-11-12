@@ -899,7 +899,7 @@ static int mqtt_ha_format_generic(char *buf,
                                   const char *device_id,
                                   const mqtt_ha_generic_t *g)
 {
-    char state_member[128] = "";
+    char state_member[256] = "";
     char cmd_member[128] = "";
     char state_topic[96];
     char cmd_topic[96];
@@ -964,7 +964,10 @@ static int mqtt_ha_format_generic(char *buf,
 #define MQTT_HA_GENERIC(fn, ...)                                              \
     int fn(char *buf, size_t len, const char *device_id)                      \
     {                                                                         \
+        _Pragma("GCC diagnostic push")                                       \
+        _Pragma("GCC diagnostic ignored \"-Wmissing-field-initializers\"")   \
         static const mqtt_ha_generic_t spec = { __VA_ARGS__ };                \
+        _Pragma("GCC diagnostic pop")                                        \
         return mqtt_ha_format_generic(buf, len, device_id, &spec);            \
     }
 

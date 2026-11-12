@@ -177,7 +177,6 @@ static port_err_t fake_erase(const char *group, const char *key)
 static port_err_t fake_erase_group(const char *group)
 {
     size_t i = 0;
-    bool removed = false;
 
     if (group == NULL) {
         return PORT_ERR_INVALID_ARG;
@@ -189,7 +188,6 @@ static port_err_t fake_erase_group(const char *group)
             if (i < s_entry_count) {
                 s_entries[i] = s_entries[s_entry_count];
             }
-            removed = true;
             continue;
         }
         i++;

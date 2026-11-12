@@ -362,7 +362,6 @@ void test_dispense_cli_parse_grams_rejects_invalid(void)
 void test_dispense_compensated_retries_until_tolerance_met(void)
 {
     app_event_t ev;
-    const fake_mqtt_port_state_t *mqtt;
 
     dispense_test_reset_all();
     dispense_test_setup_mqtt();
@@ -399,7 +398,6 @@ void test_dispense_compensated_retries_until_tolerance_met(void)
     TEST_ASSERT_EQUAL(2u, fake_motor_port_burst_calls());
 
     dispense_test_drain_mqtt();
-    mqtt = fake_mqtt_port_state();
     TEST_ASSERT_NOT_NULL(strstr(s_event_payload, "\"event_type\":\"success\""));
     TEST_ASSERT_NOT_NULL(strstr(s_event_payload, "\"grams\":28"));
     TEST_ASSERT_NOT_NULL(strstr(s_event_payload, "\"mode\":\"compensated\""));
@@ -408,7 +406,6 @@ void test_dispense_compensated_retries_until_tolerance_met(void)
 
 void test_dispense_compensated_underfill_publishes_event(void)
 {
-    const fake_mqtt_port_state_t *mqtt;
     uint32_t t = 10000u;
 
     dispense_test_reset_all();
@@ -430,7 +427,6 @@ void test_dispense_compensated_underfill_publishes_event(void)
     TEST_ASSERT_EQUAL(3u, fake_motor_port_burst_calls());
 
     dispense_test_drain_mqtt();
-    mqtt = fake_mqtt_port_state();
     TEST_ASSERT_NOT_NULL(strstr(s_event_payload, "\"event_type\":\"underfill\""));
     TEST_ASSERT_NOT_NULL(strstr(s_event_payload, "\"grams\":18"));
     TEST_ASSERT_NOT_NULL(strstr(s_event_payload, "\"batch_count\":3"));
@@ -440,7 +436,6 @@ void test_dispense_compensated_underfill_publishes_event(void)
 void test_dispense_compensation_retry_motor_busy_aborts(void)
 {
     app_event_t ev;
-    const fake_mqtt_port_state_t *mqtt;
 
     dispense_test_reset_all();
     dispense_test_setup_mqtt();
@@ -462,7 +457,6 @@ void test_dispense_compensation_retry_motor_busy_aborts(void)
     TEST_ASSERT_FALSE(dispense_is_active());
 
     dispense_test_drain_mqtt();
-    mqtt = fake_mqtt_port_state();
     TEST_ASSERT_NOT_NULL(strstr(s_event_payload, "\"event_type\":\"aborted\""));
     TEST_ASSERT_NOT_NULL(strstr(s_event_payload, "\"grams\":10"));
     TEST_ASSERT_NULL(strstr(s_event_payload, "deficit_g"));

@@ -38,11 +38,16 @@ static char ota_client_active_bank_letter(void)
 
 static void ota_client_remember(const char *state, uint8_t pct, const char *error)
 {
-    strncpy(s_last_state, state, sizeof(s_last_state) - 1);
-    s_last_state[sizeof(s_last_state) - 1] = '\0';
+    /* Republishing the remembered status passes these buffers back in. */
+    if (state != s_last_state) {
+        strncpy(s_last_state, state, sizeof(s_last_state) - 1);
+        s_last_state[sizeof(s_last_state) - 1] = '\0';
+    }
     s_last_pct = pct;
-    strncpy(s_last_error, error != NULL ? error : "", sizeof(s_last_error) - 1);
-    s_last_error[sizeof(s_last_error) - 1] = '\0';
+    if (error != s_last_error) {
+        strncpy(s_last_error, error != NULL ? error : "", sizeof(s_last_error) - 1);
+        s_last_error[sizeof(s_last_error) - 1] = '\0';
+    }
 }
 
 static void ota_client_publish_status(const char *state, uint8_t pct, const char *error)

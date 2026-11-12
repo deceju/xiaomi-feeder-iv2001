@@ -12,22 +12,28 @@
 #define APP_LOG_LEVEL APP_LOG_LEVEL_DEBUG
 #endif
 
+#if defined(__GNUC__)
+#define APP_LOG_PRINTF_FMT __attribute__((format(printf, 2, 3)))
+#else
+#define APP_LOG_PRINTF_FMT
+#endif
+
 void app_log_init(void);
 /* Copy the recent-log ring (oldest first, NUL-terminated); returns length. */
 size_t app_log_ring_copy(char *out, size_t len);
 /* Tail of the previous boot's log kept across a software reboot ("" if none). */
 size_t app_log_prev_copy(char *out, size_t len);
-void app_log_debug(const char *tag, const char *fmt, ...);
-void app_log_info(const char *tag, const char *fmt, ...);
-void app_log_warn(const char *tag, const char *fmt, ...);
-void app_log_error(const char *tag, const char *fmt, ...);
+void app_log_debug(const char *tag, const char *fmt, ...) APP_LOG_PRINTF_FMT;
+void app_log_info(const char *tag, const char *fmt, ...) APP_LOG_PRINTF_FMT;
+void app_log_warn(const char *tag, const char *fmt, ...) APP_LOG_PRINTF_FMT;
+void app_log_error(const char *tag, const char *fmt, ...) APP_LOG_PRINTF_FMT;
 void app_log_set_sink(void (*fn)(const char *buf, size_t len, void *ctx), void *ctx);
 void app_log_clear_sink(void);
 
-#define APP_LOG_D(tag, fmt, ...) app_log_debug(tag, fmt, ##__VA_ARGS__)
-#define APP_LOG_I(tag, fmt, ...) app_log_info(tag, fmt, ##__VA_ARGS__)
-#define APP_LOG_W(tag, fmt, ...) app_log_warn(tag, fmt, ##__VA_ARGS__)
-#define APP_LOG_E(tag, fmt, ...) app_log_error(tag, fmt, ##__VA_ARGS__)
+#define APP_LOG_D(tag, ...) app_log_debug(tag, __VA_ARGS__)
+#define APP_LOG_I(tag, ...) app_log_info(tag, __VA_ARGS__)
+#define APP_LOG_W(tag, ...) app_log_warn(tag, __VA_ARGS__)
+#define APP_LOG_E(tag, ...) app_log_error(tag, __VA_ARGS__)
 
 #ifdef HOST_TEST
 void app_log_test_reset(void);

@@ -1,6 +1,6 @@
 # Top-level convenience targets. See README.md for onboarding.
 
-.PHONY: test-host test-web preview-web bootstrap setup check-prereqs setup-flashtool uart-console
+.PHONY: ci test-host test-web preview-web bootstrap setup check-prereqs setup-flashtool uart-console
 
 test-host:
 	$(MAKE) -C firmware/test test-host
@@ -25,3 +25,8 @@ uart-console:
 check-prereqs:
 	./tools/check-prereqs.sh host
 	./tools/check-prereqs.sh target || true
+
+# Full local gate (host + sanitizers + web + ARM both banks + budgets).
+.PHONY: ci
+ci:
+	./tools/ci.sh

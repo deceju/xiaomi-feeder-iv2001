@@ -248,7 +248,6 @@ static port_err_t mqtt_client_publish_offline(const mqtt_port_t *mqtt)
 static port_err_t mqtt_client_subscribe_commands(const mqtt_port_t *mqtt)
 {
     char topic[96];
-    port_err_t err;
 
     if (mqtt_topic_format(topic, sizeof(topic), s_device_id, MQTT_CMD_WILDCARD) != PORT_OK) {
         return PORT_ERR_INVALID_ARG;

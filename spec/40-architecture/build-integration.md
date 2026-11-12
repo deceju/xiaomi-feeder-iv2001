@@ -324,6 +324,31 @@ browser automation in the default test loop. Firmware builds invoke
 first run may fetch the package). Local layout preview:
 `make preview-web` (`tools/web/dev_server.mjs` + `mock_api.mjs`, unminified).
 
+### Full local gate
+
+```
+make ci
+```
+
+`tools/ci.sh` is the gate every change passes before merge. It runs, and
+reports PASS/FAIL per step:
+
+- the `printf()` ban;
+- the web bundle: `firmware/src/web_ui_gz.c` regenerated and unchanged
+  (stale bundles fail), gzipped size ≤ 24 KB;
+- `make test-web`;
+- host tests built with `-Werror`, under a global timeout;
+- host tests under AddressSanitizer + UndefinedBehaviorSanitizer (leaks
+  included);
+- the ARM build of both banks, each image ≤ 952 KB, static RAM reported;
+- the firmware version (`firmware/.fw_version`) embedded in both images.
+
+`CI_SKIP_ARM=1` runs the host and web steps only; the ARM steps are also
+skipped when the toolchain or the SDK is missing.
+
+`app_log` functions carry the `printf` format attribute, so format/argument
+mismatches are compile errors under `-Werror`.
+
 ### On-target tests
 
 Cross-compiled; triggered via UART CLI (see

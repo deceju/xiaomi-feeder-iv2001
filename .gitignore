@@ -22,6 +22,10 @@ tools/ota/logs/.uart-*.lock
 *.dis
 build/
 build-host/
+build-ci/
+build-san/
+build-w/
+build-w2/
 out/
 
 # KiCad backups

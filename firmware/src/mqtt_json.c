@@ -8,29 +8,6 @@
 
 #include "mqtt_json.h"
 
-static const char *mqtt_json_skip_string(const char *cursor, const char *end)
-{
-    if (cursor >= end || *cursor != '"') {
-        return NULL;
-    }
-
-    cursor++;
-    while (cursor < end) {
-        if (*cursor == '"') {
-            return cursor + 1;
-        }
-        if (*cursor == '\\') {
-            cursor++;
-            if (cursor >= end) {
-                return NULL;
-            }
-        }
-        cursor++;
-    }
-
-    return NULL;
-}
-
 static bool mqtt_json_copy_string(const char *cursor,
                                     const char *end,
                                     char *out,

@@ -177,7 +177,7 @@ void test_adc_battery_mux_call_order(void)
 void test_adc_battery_restores_mux_on_read_error(void)
 {
     uint16_t mv = 0u;
-    uint16_t raws[5];
+    uint16_t raws[5] = { 0u };
 
     adc_driver_test_reset();
     adc_test_set_raw_sequence(raws, 5u);
