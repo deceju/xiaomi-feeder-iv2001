@@ -36,6 +36,20 @@ san_flags="$host_flags -g -O1 -fsanitize=address,undefined -fno-omit-frame-point
 
 no_printf() { make -s -C "$TEST_DIR" check-no-printf; }
 
+# Every firmware source is in the target build, and every listed file exists.
+file_lists() {
+    local mk="$ROOT/firmware/GCC/Makefile" rc=0 f name
+    for f in "$ROOT"/firmware/src/*.c; do
+        name="$(basename "$f")"
+        case "$name" in bl_*.c) continue ;; esac   # bootloader sources (SDK patches)
+        grep -q "APP_PATH_SRC)/$name\b" "$mk" || { echo "not in GCC/Makefile: src/$name" >&2; rc=1; }
+    done
+    while read -r name; do
+        [ -f "$ROOT/firmware/src/$name" ] || { echo "GCC/Makefile lists missing src/$name" >&2; rc=1; }
+    done < <(sed -n 's#.*APP_PATH_SRC)/\([A-Za-z0-9_]*\.c\).*#\1#p' "$mk")
+    return $rc
+}
+
 web_bundle() {
     local out="$ROOT/firmware/src/web_ui_gz.c" bytes
     "$ROOT/tools/web/build.sh" >/dev/null
@@ -105,6 +119,7 @@ arm_version() {
 }
 
 run "no printf in firmware/src" no_printf
+run "build file lists match the sources" file_lists
 run "web bundle up to date and within budget" web_bundle
 run "web tests" web_tests
 run "host tests (-Werror)" host_tests
@@ -115,9 +130,14 @@ if [ "${CI_SKIP_ARM:-0}" = "1" ]; then
 elif ! command -v arm-none-eabi-gcc >/dev/null || [ ! -d "$ROOT/external/linkit-sdk-v4.7.1" ]; then
     step "ARM build skipped (toolchain or SDK missing: run ./tools/bootstrap.sh)"
 else
-    run "ARM build (bank A + bank B)" arm_build
-    run "flash and RAM budgets" arm_budgets
-    run "firmware version in both banks" arm_version
+    step "ARM build (bank A + bank B)"
+    if arm_build; then
+        ok "ARM build (bank A + bank B)"
+        run "flash and RAM budgets" arm_budgets
+        run "firmware version in both banks" arm_version
+    else
+        ko "ARM build (bank A + bank B)"
+    fi
 fi
 
 printf '\n%d passed, %d failed\n' "${#pass[@]}" "${#fail[@]}"

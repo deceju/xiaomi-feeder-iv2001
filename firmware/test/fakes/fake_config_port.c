@@ -62,9 +62,18 @@ static port_err_t fake_read(const char *group, const char *key, char *buf, size_
     return PORT_OK;
 }
 
+static unsigned s_write_count;
+
+unsigned fake_config_port_write_count(void)
+{
+    return s_write_count;
+}
+
 static port_err_t fake_write(const char *group, const char *key, const char *value)
 {
     fake_entry_t *entry;
+
+    s_write_count++;
 
     if (group == NULL || key == NULL || value == NULL) {
         return PORT_ERR_INVALID_ARG;

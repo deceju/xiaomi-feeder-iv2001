@@ -95,6 +95,37 @@ Keys that rarely change (wifi, mqtt, calib) are written only on explicit user ac
 Keys that change periodically (schedule/slots, system/boot_count) tolerate
 moderate write frequency.
 
+## Settings registry
+
+User settings (feed mode, child lock, overfill, daily limit, not-eaten alert,
+button amount, display, Wi-Fi on battery) are rows of one table,
+`firmware/inc/settings_table.h`: NVDM group and key, JSON field name, type
+(bool, unsigned, enum), default, range and flags. `settings.c` is the only
+code that reads, validates and writes them; every writer (MQTT, web, UART,
+import) goes through `settings_set`, so a value is checked the same way
+whichever path it comes from.
+
+- Storage stays text: bool `1`/`0` (`true`/`false` also read), enum by name,
+  unsigned in decimal. Records written by earlier firmware read unchanged.
+- A missing or unparsable value reads as the default. An out-of-range value
+  reads as the default, or is clamped when the row says so
+  (`overfill_threshold_g`).
+- `0` is accepted outside the range only where it means "off"
+  (`daily_max_g`). `button_g` uses `0` for "not configured" (the Dispense
+  button then dispenses one portion); no writer may store `0` there.
+- Writing the current value is a no-op: no flash write.
+- Side effects of a change (log lines, disarming the not-eaten alert when
+  it is switched off) live in `settings_hooks.c`.
+- Export/import carry every row flagged `export`; import validates each
+  value like any other writer and skips (and logs) invalid ones.
+- MQTT state/commands for these settings are table rows too
+  (`mqtt_settings.c`): one retained state topic per group, and a command is
+  validated whole before any field is applied (all-or-nothing).
+- Contract tests check that every row has an MQTT topic and a Home
+  Assistant entity whose range and options match the row.
+
+A legacy `display/mode` of `off` is converted once at boot to brightness 0.
+
 ## Factory reset
 
 1. Erase all NVDM namespaces (wifi, mqtt, feed, display, schedule, time,

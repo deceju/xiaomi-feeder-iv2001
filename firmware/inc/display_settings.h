@@ -36,5 +36,7 @@ bool display_settings_brightness_set(uint8_t level);
 
 const char *display_settings_mode_name(display_mode_t mode);
 bool display_settings_mode_parse(const char *name, display_mode_t *out);
+/* Convert a legacy "off" display mode to brightness 0 (run once at boot). */
+void display_settings_migrate(void);
 
 #endif /* DISPLAY_SETTINGS_H */

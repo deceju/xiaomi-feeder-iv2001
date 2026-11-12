@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "unity.h"
+#include "test_mqtt_drain.h"
 
 #include "app.h"
 #include "app_event.h"
@@ -1047,12 +1048,7 @@ void test_app_child_lock_combo_publishes_state(void)
     post_display_tick(50u + BUTTON_GESTURE_CHILD_LOCK_MS + 50u);
     app_step();
 
-    while (mqtt_outbox_pending() > 0) {
-        if (!mqtt_outbox_drain_one(fake_mqtt_port_get())) {
-            fake_time_advance_ms(101u);
-            (void)mqtt_outbox_drain_one(fake_mqtt_port_get());
-        }
-    }
+    (void)test_mqtt_drain_all();
 
     mqtt = fake_mqtt_port_state();
     TEST_ASSERT_TRUE(feed_config_child_lock_is_active());

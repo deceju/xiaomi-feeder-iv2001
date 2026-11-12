@@ -1,306 +1,63 @@
 /*
- * Feed settings in NVDM — spec/30-processes/config-store.md
+ * Feed settings — spec/30-processes/config-store.md (feed group).
+ * Values live in the settings registry.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "config_keys.h"
-#include "config_port.h"
-#include "dispense.h"
 #include "feed_config.h"
 
-static bool parse_bool(const char *value, bool *out)
-{
-    if (value == NULL || out == NULL) {
-        return false;
-    }
-
-    if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0) {
-        *out = true;
-        return true;
-    }
-
-    if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0) {
-        *out = false;
-        return true;
-    }
-
-    return false;
-}
-
-static bool feed_config_child_lock_load(bool *out)
-{
-    const config_port_t *cfg = config_port_get();
-    char buf[8];
-    port_err_t err;
-
-    if (out == NULL) {
-        return false;
-    }
-
-    if (cfg == NULL) {
-        return false;
-    }
-
-    err = cfg->read(CONFIG_GROUP_FEED, CONFIG_KEY_CHILD_LOCK, buf, sizeof(buf));
-    if (err == PORT_ERR_NOT_FOUND) {
-        *out = false;
-        return true;
-    }
-
-    if (err != PORT_OK) {
-        return false;
-    }
-
-    return parse_bool(buf, out);
-}
+#include "settings.h"
 
 bool feed_config_child_lock_is_active(void)
 {
-    bool locked = false;
-
-    if (!feed_config_child_lock_load(&locked)) {
-        return false;
-    }
-
-    return locked;
+    return settings_get_bool(SETTING_CHILD_LOCK);
 }
 
 bool feed_config_child_lock_set(bool locked)
 {
-    const config_port_t *cfg = config_port_get();
-
-    if (cfg == NULL) {
-        return false;
-    }
-
-    return cfg->write(CONFIG_GROUP_FEED,
-                      CONFIG_KEY_CHILD_LOCK,
-                      locked ? "1" : "0") == PORT_OK;
+    return settings_set(SETTING_CHILD_LOCK, locked ? 1u : 0u) == PORT_OK;
 }
 
+/* Returns the state now in effect. */
 bool feed_config_child_lock_toggle(void)
 {
-    bool locked = false;
+    bool locked = !feed_config_child_lock_is_active();
 
-    if (!feed_config_child_lock_load(&locked)) {
-        return false;
-    }
-
-    locked = !locked;
-    if (!feed_config_child_lock_set(locked)) {
-        return !locked;
-    }
-
-    return locked;
-}
-
-static bool feed_config_mode_parse(const char *value, dispense_mode_t *out)
-{
-    if (value == NULL || out == NULL) {
-        return false;
-    }
-
-    if (strcmp(value, "compensated") == 0) {
-        *out = DISPENSE_MODE_COMPENSATED;
-        return true;
-    }
-
-    if (strcmp(value, "open_loop") == 0) {
-        *out = DISPENSE_MODE_OPEN_LOOP;
-        return true;
-    }
-
-    return false;
+    return feed_config_child_lock_set(locked) ? locked : !locked;
 }
 
 const char *feed_config_mode_string(dispense_mode_t mode)
 {
-    switch (mode) {
-    case DISPENSE_MODE_COMPENSATED:
-        return "compensated";
-    case DISPENSE_MODE_OPEN_LOOP:
-    default:
-        return "open_loop";
-    }
-}
+    const char *name = settings_enum_name(SETTING_FEED_MODE, (uint16_t)mode);
 
-static bool feed_config_mode_load(dispense_mode_t *out)
-{
-    const config_port_t *cfg = config_port_get();
-    char buf[16];
-    port_err_t err;
-
-    if (out == NULL) {
-        return false;
-    }
-
-    if (cfg == NULL) {
-        return false;
-    }
-
-    err = cfg->read(CONFIG_GROUP_FEED, CONFIG_KEY_FEED_MODE, buf, sizeof(buf));
-    if (err == PORT_ERR_NOT_FOUND) {
-        *out = DISPENSE_MODE_OPEN_LOOP;
-        return true;
-    }
-
-    if (err != PORT_OK) {
-        return false;
-    }
-
-    return feed_config_mode_parse(buf, out);
+    return name[0] != '\0' ? name : "open_loop";
 }
 
 dispense_mode_t feed_config_mode_get(void)
 {
-    dispense_mode_t mode = DISPENSE_MODE_OPEN_LOOP;
-
-    if (!feed_config_mode_load(&mode)) {
-        return DISPENSE_MODE_OPEN_LOOP;
-    }
-
-    return mode;
+    return (dispense_mode_t)settings_get(SETTING_FEED_MODE);
 }
 
 bool feed_config_mode_set(dispense_mode_t mode)
 {
-    const config_port_t *cfg = config_port_get();
-    const char *stored;
-
-    if (cfg == NULL) {
-        return false;
-    }
-
-    if (mode != DISPENSE_MODE_OPEN_LOOP && mode != DISPENSE_MODE_COMPENSATED) {
-        return false;
-    }
-
-    stored = feed_config_mode_string(mode);
-    return cfg->write(CONFIG_GROUP_FEED, CONFIG_KEY_FEED_MODE, stored) == PORT_OK;
-}
-
-static uint16_t feed_config_clamp_overfill_threshold(unsigned long threshold_g)
-{
-    if (threshold_g < FEED_OVERFILL_THRESHOLD_G_MIN) {
-        return FEED_OVERFILL_THRESHOLD_G_MIN;
-    }
-
-    if (threshold_g > FEED_OVERFILL_THRESHOLD_G_MAX) {
-        return FEED_OVERFILL_THRESHOLD_G_MAX;
-    }
-
-    return (uint16_t)threshold_g;
-}
-
-static bool feed_config_overfill_enabled_load(bool *out)
-{
-    const config_port_t *cfg = config_port_get();
-    char buf[8];
-    port_err_t err;
-
-    if (out == NULL) {
-        return false;
-    }
-
-    if (cfg == NULL) {
-        return false;
-    }
-
-    err = cfg->read(CONFIG_GROUP_FEED, CONFIG_KEY_OVERFILL_ENABLED, buf, sizeof(buf));
-    if (err == PORT_ERR_NOT_FOUND) {
-        *out = false;
-        return true;
-    }
-
-    if (err != PORT_OK) {
-        return false;
-    }
-
-    return parse_bool(buf, out);
+    return settings_set(SETTING_FEED_MODE, (uint16_t)mode) == PORT_OK;
 }
 
 bool feed_config_overfill_enabled_get(void)
 {
-    bool enabled = false;
-
-    if (!feed_config_overfill_enabled_load(&enabled)) {
-        return false;
-    }
-
-    return enabled;
+    return settings_get_bool(SETTING_OVERFILL_ENABLED);
 }
 
 bool feed_config_overfill_enabled_set(bool enabled)
 {
-    const config_port_t *cfg = config_port_get();
-
-    if (cfg == NULL) {
-        return false;
-    }
-
-    return cfg->write(CONFIG_GROUP_FEED,
-                      CONFIG_KEY_OVERFILL_ENABLED,
-                      enabled ? "1" : "0") == PORT_OK;
-}
-
-static bool feed_config_overfill_threshold_load(uint16_t *out)
-{
-    const config_port_t *cfg = config_port_get();
-    char buf[8];
-    port_err_t err;
-    unsigned long parsed;
-
-    if (out == NULL) {
-        return false;
-    }
-
-    if (cfg == NULL) {
-        return false;
-    }
-
-    err = cfg->read(CONFIG_GROUP_FEED, CONFIG_KEY_OVERFILL_THRESHOLD_G, buf, sizeof(buf));
-    if (err == PORT_ERR_NOT_FOUND) {
-        *out = FEED_OVERFILL_THRESHOLD_G_DEFAULT;
-        return true;
-    }
-
-    if (err != PORT_OK) {
-        return false;
-    }
-
-    parsed = strtoul(buf, NULL, 10);
-    *out = feed_config_clamp_overfill_threshold(parsed);
-    return true;
+    return settings_set(SETTING_OVERFILL_ENABLED, enabled ? 1u : 0u) == PORT_OK;
 }
 
 uint16_t feed_config_overfill_threshold_g_get(void)
 {
-    uint16_t threshold_g = FEED_OVERFILL_THRESHOLD_G_DEFAULT;
-
-    if (!feed_config_overfill_threshold_load(&threshold_g)) {
-        return FEED_OVERFILL_THRESHOLD_G_DEFAULT;
-    }
-
-    return threshold_g;
+    return settings_get(SETTING_OVERFILL_THRESHOLD_G);
 }
 
 bool feed_config_overfill_threshold_g_set(uint16_t threshold_g)
 {
-    const config_port_t *cfg = config_port_get();
-    char buf[8];
-
-    if (cfg == NULL) {
-        return false;
-    }
-
-    if (threshold_g < FEED_OVERFILL_THRESHOLD_G_MIN ||
-        threshold_g > FEED_OVERFILL_THRESHOLD_G_MAX) {
-        return false;
-    }
-
-    (void)snprintf(buf, sizeof(buf), "%u", (unsigned)threshold_g);
-    return cfg->write(CONFIG_GROUP_FEED, CONFIG_KEY_OVERFILL_THRESHOLD_G, buf) == PORT_OK;
+    return settings_set(SETTING_OVERFILL_THRESHOLD_G, threshold_g) == PORT_OK;
 }

@@ -1370,6 +1370,18 @@ unsigned mqtt_ha_discovery_entity_count(void)
     return (unsigned)HA_ENTITY_COUNT;
 }
 
+int mqtt_ha_discovery_format_entity(unsigned index, char *buf, size_t len, const char *device_id,
+                                    const char **object_id)
+{
+    if (index >= HA_ENTITY_COUNT) {
+        return -1;
+    }
+    if (object_id != NULL) {
+        *object_id = s_ha_entities[index].object_id;
+    }
+    return s_ha_entities[index].format_config(buf, len, device_id);
+}
+
 void mqtt_ha_discovery_test_reset(void)
 {
     s_discovery_device_id[0] = '\0';

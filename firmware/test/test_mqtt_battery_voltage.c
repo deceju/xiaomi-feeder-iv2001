@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "unity.h"
+#include "test_mqtt_drain.h"
 
 #include "fake_mqtt_port.h"
 #include "fake_time.h"
@@ -13,14 +14,7 @@
 
 static void drain_voltage_outbox(void)
 {
-    const mqtt_port_t *mqtt = fake_mqtt_port_get();
-
-    while (mqtt_outbox_pending() > 0) {
-        if (!mqtt_outbox_drain_one(mqtt)) {
-            fake_time_advance_ms(101u);
-            (void)mqtt_outbox_drain_one(mqtt);
-        }
-    }
+    (void)test_mqtt_drain_all();
 }
 
 static void setup_mqtt_battery_voltage(void)

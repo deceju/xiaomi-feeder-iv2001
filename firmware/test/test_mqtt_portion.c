@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "unity.h"
+#include "test_mqtt_drain.h"
 
 #include "app.h"
 #include "app_cmd_dispatch.h"
@@ -42,11 +43,7 @@ static void setup(void)
 
 static void drain(void)
 {
-    while (mqtt_outbox_pending() > 0) {
-        if (!mqtt_outbox_drain_one(fake_mqtt_port_get())) {
-            fake_time_advance_ms(101u);
-        }
-    }
+    (void)test_mqtt_drain_all();
 }
 
 static port_err_t cmd(const char *s)

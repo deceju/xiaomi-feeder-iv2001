@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "unity.h"
+#include "test_mqtt_drain.h"
 
 #include "app.h"
 #include "app_event.h"
@@ -84,19 +85,8 @@ static void dispense_test_capture_event(void)
 /* Drains the outbox; s_event_payload keeps the last dispense event. */
 static void dispense_test_drain_mqtt(void)
 {
-    const mqtt_port_t *mqtt = fake_mqtt_port_get();
-
     s_event_payload[0] = '\0';
-    while (mqtt_outbox_pending() > 0) {
-        if (!mqtt_outbox_drain_one(mqtt)) {
-            fake_time_advance_ms(101u);
-            if (mqtt_outbox_drain_one(mqtt)) {
-                dispense_test_capture_event();
-            }
-        } else {
-            dispense_test_capture_event();
-        }
-    }
+    (void)test_mqtt_drain_all_each(dispense_test_capture_event);
 }
 
 static void dispense_test_run_burst_and_settle(int32_t weight_grams, uint32_t *time_ms)

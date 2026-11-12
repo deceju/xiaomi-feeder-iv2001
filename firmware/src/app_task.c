@@ -9,6 +9,7 @@
 #include "timers.h"
 
 #include "app.h"
+#include "app_lock.h"
 #include "feed_history.h"
 #include "task_watch.h"
 #include "app_event.h"
@@ -23,6 +24,7 @@
 #include "power_source_input.h"
 #include "power_source_port.h"
 #include "display_presentation.h"
+#include "display_settings.h"
 #include "dispense.h"
 #include "feed_bowl.h"
 #include "task_def.h"
@@ -145,6 +147,7 @@ void app_start(void)
     app_event_port_init();
     wdt_adapter_log_reset_reason();
     feed_counter_inc(FEED_COUNTER_BOOTS);
+    display_settings_migrate();
     time_sync_init();
     tz_rule_init();
     schedule_init();

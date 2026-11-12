@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "unity.h"
+#include "test_mqtt_drain.h"
 
 #include "app_feed_cli.h"
 #include "cli_test_assert.h"
@@ -69,9 +70,7 @@ void test_feed_cli_mode_set_publishes_mqtt_when_configured(void)
 
     TEST_ASSERT_EQUAL_UINT8(0, feed_cli_run_mode_set(DISPENSE_MODE_COMPENSATED));
 
-    while (mqtt_outbox_pending() > 0) {
-        (void)mqtt_outbox_drain_one(fake_mqtt_port_get());
-    }
+    (void)test_mqtt_drain_all();
 
     mqtt = fake_mqtt_port_state();
     TEST_ASSERT_NOT_NULL(strstr(mqtt->last_publish_topic, "feed/mode"));

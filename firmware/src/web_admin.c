@@ -13,6 +13,7 @@
 #include "app_log.h"
 #include "config_keys.h"
 #include "config_port.h"
+#include "settings.h"
 #include "mqtt_cred.h"
 #include "mqtt_json.h"
 #include "ntp_config.h"
@@ -26,23 +27,14 @@
 
 #define WEB_PASS_KEY "web_pass"
 
-/* Settings carried by export/import (strings). Wi-Fi and every password stay
+/* Settings carried by export/import besides the settings registry (whose
+ * exportable rows are added automatically). Wi-Fi and every password stay
  * out: a restore never locks the feeder off the network. */
 static const struct {
     const char *group;
     const char *key;
 } s_backup_keys[] = {
-    { CONFIG_GROUP_FEED, CONFIG_KEY_FEED_MODE },
-    { CONFIG_GROUP_FEED, CONFIG_KEY_CHILD_LOCK },
-    { CONFIG_GROUP_FEED, CONFIG_KEY_OVERFILL_ENABLED },
-    { CONFIG_GROUP_FEED, CONFIG_KEY_OVERFILL_THRESHOLD_G },
     { CONFIG_GROUP_FEED, "portion_dg" },
-    { CONFIG_GROUP_FEED, "button_g" },
-    { CONFIG_GROUP_DISPLAY, CONFIG_KEY_DISPLAY_MODE },
-    { CONFIG_GROUP_DISPLAY, CONFIG_KEY_DISPLAY_BRIGHTNESS },
-    { CONFIG_GROUP_DISPLAY, CONFIG_KEY_DISPLAY_BATTERY_OFF_S },
-    { CONFIG_GROUP_DISPLAY, CONFIG_KEY_DISPLAY_MAINS_OFF_S },
-    { CONFIG_GROUP_POWER, CONFIG_KEY_POWER_BATTERY_WIFI },
     { CONFIG_GROUP_TIME, CONFIG_KEY_TZ_RULE },
     { CONFIG_GROUP_TIME, CONFIG_KEY_TZ_LABEL },
     { CONFIG_GROUP_TIME, CONFIG_KEY_NTP_SERVER },
@@ -324,6 +316,25 @@ static port_err_t web_admin_import(const char *body, size_t len)
     if (cfg == NULL || body == NULL || len == 0u) {
         return PORT_ERR_INVALID_ARG;
     }
+    for (i = 0u; i < SETTING_COUNT; i++) {
+        const setting_def_t *d = settings_def((setting_id_t)i);
+        uint16_t v;
+
+        if ((d->flags & SETTING_F_EXPORT) == 0u) {
+            continue;
+        }
+        (void)snprintf(name, sizeof(name), "%s/%s", d->group, d->key);
+        if (!mqtt_json_find_string(body, len, name, value, sizeof(value))) {
+            continue;
+        }
+        if (!settings_parse((setting_id_t)i, value, &v)) {
+            app_log_info("web", "import: %s rejected", name);
+            continue;
+        }
+        if (settings_set((setting_id_t)i, v) == PORT_OK) {
+            applied++;
+        }
+    }
     for (i = 0u; i < BACKUP_COUNT; i++) {
         (void)snprintf(name, sizeof(name), "%s/%s", s_backup_keys[i].group, s_backup_keys[i].key);
         if (mqtt_json_find_string(body, len, name, value, sizeof(value))) {
@@ -440,6 +451,20 @@ int web_admin_export(char *buf, size_t len)
         return -1;
     }
     off = w;
+    for (i = 0u; i < SETTING_COUNT; i++) {
+        const setting_def_t *d = settings_def((setting_id_t)i);
+
+        if ((d->flags & SETTING_F_EXPORT) == 0u ||
+            cfg->read(d->group, d->key, value, sizeof(value)) != PORT_OK) {
+            continue;
+        }
+        web_admin_escape(value, esc, sizeof(esc));
+        w = snprintf(buf + off, len - (size_t)off, ",\"%s/%s\":\"%s\"", d->group, d->key, esc);
+        if (w < 0 || (size_t)w >= len - (size_t)off) {
+            return -1;
+        }
+        off += w;
+    }
     for (i = 0u; i < BACKUP_COUNT; i++) {
         if (cfg->read(s_backup_keys[i].group, s_backup_keys[i].key, value, sizeof(value)) != PORT_OK) {
             continue;

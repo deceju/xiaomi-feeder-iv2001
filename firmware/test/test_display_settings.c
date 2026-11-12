@@ -85,6 +85,7 @@ void test_display_settings_legacy_off_mode_reads_as_brightness_zero(void)
     setup();
     TEST_ASSERT_EQUAL(PORT_OK,
                       config_port_get()->write(CONFIG_GROUP_DISPLAY, CONFIG_KEY_DISPLAY_MODE, "off"));
+    display_settings_migrate();
     TEST_ASSERT_EQUAL(DISPLAY_MODE_WEIGHT, display_settings_mode_get());
     TEST_ASSERT_EQUAL_UINT8(0u, display_settings_brightness_get());
     TEST_ASSERT_TRUE(display_settings_brightness_set(3u));

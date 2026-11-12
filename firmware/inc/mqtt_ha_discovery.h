@@ -100,6 +100,9 @@ int mqtt_ha_format_firmware_bank_config(char *buf, size_t len, const char *devic
 
 /* Number of entities in the discovery table. */
 unsigned mqtt_ha_discovery_entity_count(void);
+/* Discovery config of entity index (contract tests). Returns length or -1. */
+int mqtt_ha_discovery_format_entity(unsigned index, char *buf, size_t len, const char *device_id,
+                                    const char **object_id);
 
 /* Outbox occupancy above which the discovery pump waits (spec § Discovery pacing). */
 #define MQTT_HA_DISCOVERY_MAX_PENDING  12u

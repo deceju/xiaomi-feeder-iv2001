@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "unity.h"
+#include "test_mqtt_drain.h"
 
 #include "app_cmd_dispatch.h"
 #include "fake_config_port.h"
@@ -72,11 +73,7 @@ void test_ota_base_publishes_retained_state(void)
 
     setup();
     TEST_ASSERT_EQUAL(PORT_OK, cmd("http://host/d"));
-    while (mqtt_outbox_pending() > 0) {
-        if (!mqtt_outbox_drain_one(fake_mqtt_port_get())) {
-            fake_time_advance_ms(101u);
-        }
-    }
+    (void)test_mqtt_drain_all();
     mqtt = fake_mqtt_port_state();
     TEST_ASSERT_EQUAL_STRING("petfeeder/ddeeff/ota/base", mqtt->last_publish_topic);
     TEST_ASSERT_EQUAL_STRING("http://host/d", mqtt->last_publish_payload);

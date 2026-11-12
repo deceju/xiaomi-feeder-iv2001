@@ -1,6 +1,7 @@
 /* Tests: spec/30-processes/battery-monitoring.md § Sample interval */
 
 #include "unity.h"
+#include "test_mqtt_drain.h"
 
 #include "battery_monitor.h"
 #include "fake_adc_port.h"
@@ -36,14 +37,7 @@ static void setup_battery_monitor(bool mains_present)
 
 static void drain_outbox(void)
 {
-    const mqtt_port_t *mqtt = fake_mqtt_port_get();
-
-    while (mqtt_outbox_pending() > 0) {
-        if (!mqtt_outbox_drain_one(mqtt)) {
-            fake_time_advance_ms(101u);
-            (void)mqtt_outbox_drain_one(mqtt);
-        }
-    }
+    (void)test_mqtt_drain_all();
 }
 
 void test_battery_monitor_samples_immediately_on_first_poll(void)

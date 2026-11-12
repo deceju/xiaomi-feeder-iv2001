@@ -1,8 +1,10 @@
 /* Tests: spec/30-processes/auto-tare.md, monitoring.md */
 
+#include <stdio.h>
 #include <string.h>
 
 #include "unity.h"
+#include "test_mqtt_drain.h"
 
 #include "app.h"
 #include "app_event.h"
@@ -78,15 +80,6 @@ static void app_auto_tare_test_setup_mqtt(void)
     mqtt_bowl_weight_set_device_id(TEST_DEVICE_ID);
 }
 
-static void app_auto_tare_test_drain_mqtt(void)
-{
-    const mqtt_port_t *mqtt = fake_mqtt_port_get();
-
-    while (mqtt_outbox_pending() > 0) {
-        (void)mqtt_outbox_drain_one(mqtt);
-    }
-}
-
 static void app_auto_tare_test_reset(void)
 {
     fake_weight_port_reset();
@@ -132,9 +125,22 @@ void test_app_bowl_missing_invalidates_auto_tare(void)
     TEST_ASSERT_FALSE(auto_tare_stable_valid());
 }
 
+static char s_bowl_payload[512];
+static unsigned s_bowl_publishes;
+
+static void app_auto_tare_capture_bowl(void)
+{
+    const fake_mqtt_port_state_t *st = fake_mqtt_port_state();
+    size_t n = strlen(st->last_publish_topic);
+
+    if (n >= 11u && strcmp(st->last_publish_topic + n - 11u, "bowl_weight") == 0) {
+        (void)snprintf(s_bowl_payload, sizeof(s_bowl_payload), "%s", st->last_publish_payload);
+        s_bowl_publishes++;
+    }
+}
+
 void test_app_mqtt_bowl_weight_holds_presented_during_drift(void)
 {
-    const fake_mqtt_port_state_t *mqtt;
     unsigned publishes_before;
     unsigned publishes_after;
 
@@ -145,16 +151,16 @@ void test_app_mqtt_bowl_weight_holds_presented_during_drift(void)
     app_auto_tare_test_anchor_quiet(120, 500u);
 
     post_display_tick(2500u);
-    app_auto_tare_test_drain_mqtt();
-    mqtt = fake_mqtt_port_state();
-    publishes_before = mqtt->publish_calls;
-    TEST_ASSERT_NOT_NULL(strstr(mqtt->last_publish_payload, "12.0"));
+    s_bowl_payload[0] = '\0';
+    s_bowl_publishes = 0u;
+    (void)test_mqtt_drain_all_each(app_auto_tare_capture_bowl);
+    publishes_before = s_bowl_publishes;
+    TEST_ASSERT_NOT_NULL(strstr(s_bowl_payload, "12.0"));
 
     fake_weight_port_set_read_dg(119);
     post_display_tick(3000u);
-    app_auto_tare_test_drain_mqtt();
-    mqtt = fake_mqtt_port_state();
-    publishes_after = mqtt->publish_calls;
+    (void)test_mqtt_drain_all_each(app_auto_tare_capture_bowl);
+    publishes_after = s_bowl_publishes;
 
     TEST_ASSERT_EQUAL_INT32(120, auto_tare_present_dg(119, true));
     TEST_ASSERT_EQUAL_UINT(publishes_before, publishes_after);

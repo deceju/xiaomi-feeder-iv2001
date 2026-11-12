@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "unity.h"
+#include "test_mqtt_drain.h"
 
 #include "fake_config_port.h"
 #include "fake_mqtt_port.h"
@@ -17,23 +18,9 @@
 #define TEST_DEVICE_ID "ddeeff"
 #define BUCHAREST_POSIX "EET-2EEST,M3.5.0/3,M10.5.0/4"
 
-static void drain_one_outbox(void)
-{
-    const mqtt_port_t *mqtt = fake_mqtt_port_get();
-
-    if (mqtt_outbox_pending() > 0) {
-        if (!mqtt_outbox_drain_one(mqtt)) {
-            fake_time_advance_ms(101u);
-            (void)mqtt_outbox_drain_one(mqtt);
-        }
-    }
-}
-
 static void drain_config_outbox(void)
 {
-    while (mqtt_outbox_pending() > 0) {
-        drain_one_outbox();
-    }
+    (void)test_mqtt_drain_all();
 }
 
 static void setup_mqtt_config(void)

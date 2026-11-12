@@ -21,6 +21,7 @@ uint16_t feed_limit_daily_max_g(void);       /* 0 = off */
 uint8_t feed_limit_not_eaten_h(void);        /* 0 = off */
 bool feed_limit_set_daily_max_g(uint16_t g);
 bool feed_limit_set_not_eaten_h(uint8_t h);
+void feed_not_eaten_disarm(void);
 
 /* Grams still allowed today; false when no limit is set. */
 bool feed_limit_remaining_g(uint32_t *remaining_g);

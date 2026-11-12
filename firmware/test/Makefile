@@ -33,6 +33,9 @@ HOST_SRCS :=              ../src/app_log.c \
              ../src/provision_reset.c \
              ../src/mqtt_cred.c \
              ../src/feed_config.c \
+             ../src/settings.c \
+             ../src/settings_hooks.c \
+             ../src/mqtt_settings.c \
              ../src/feed_bowl.c \
              ../src/tz_rule.c \
              ../src/epoch_calendar.c \
@@ -41,21 +44,16 @@ HOST_SRCS :=              ../src/app_log.c \
              ../src/time_config.c \
              ../src/mqtt_config.c \
              ../src/mqtt_json.c \
-             ../src/mqtt_feed_mode.c \
-             ../src/mqtt_feed_overfill.c \
-             ../src/mqtt_child_lock.c \
              ../src/display_idle.c \
              ../src/eaten_today.c \
              ../src/mqtt_eaten_today.c \
              ../src/mqtt_calibrate.c \
-             ../src/mqtt_display.c \
              ../src/ota_base.c \
              ../src/power_policy.c \
              ../src/portion_estimate.c \
              ../src/mqtt_portion.c \
              ../src/app_lock.c \
              ../src/ntp_config.c \
-             ../src/mqtt_dispense_amount.c \
              ../src/mqtt_wifi_rssi.c \
              ../src/web_admin.c \
              ../src/mqtt_dispense_progress.c \
@@ -65,7 +63,6 @@ HOST_SRCS :=              ../src/app_log.c \
              ../src/mqtt_problem.c \
              ../src/task_watch.c \
              ../src/app_health.c \
-             ../src/mqtt_power.c \
              ../src/display_settings.c \
              ../src/mqtt_backoff.c \
              ../src/mqtt_topics.c \
@@ -185,6 +182,7 @@ HOST_SRCS :=              ../src/app_log.c \
              fakes/adc_jam_isr_host_stub.c \
              fakes/host_stubs.c \
              fakes/port_providers_host.c \
+             fakes/test_mqtt_drain.c \
              sim/feeder_sim.c
 
 .PHONY: all test-host check-no-printf clean web-ui-gz
