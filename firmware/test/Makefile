@@ -2,7 +2,7 @@
 
 CC       ?= gcc
 CFLAGS   ?= -Wall -Wextra -std=c11 -pedantic
-CPPFLAGS := -I. -I../inc -I../ports -Ifakes -Ifakes/shim -Iunity -DHOST_TEST -DAPP_LOG_LEVEL=APP_LOG_LEVEL_DEBUG -DREMOTE_CLI_ENABLE=1 -DWEB_UI_ENABLE=1
+CPPFLAGS := -I. -I../inc -I../ports -Ifakes -Ifakes/shim -Isim -Iunity -DHOST_TEST -DAPP_LOG_LEVEL=APP_LOG_LEVEL_DEBUG -DREMOTE_CLI_ENABLE=1 -DWEB_UI_ENABLE=1
 LDFLAGS  :=
 BUILD    := build-host
 RUNNER   := $(BUILD)/test_runner.c
@@ -184,7 +184,8 @@ HOST_SRCS :=              ../src/app_log.c \
              fakes/motor_index_irq_host_stub.c \
              fakes/adc_jam_isr_host_stub.c \
              fakes/host_stubs.c \
-             fakes/port_providers_host.c
+             fakes/port_providers_host.c \
+             sim/feeder_sim.c
 
 .PHONY: all test-host check-no-printf clean web-ui-gz
 

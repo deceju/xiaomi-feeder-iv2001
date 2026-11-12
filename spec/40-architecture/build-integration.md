@@ -309,6 +309,17 @@ make test-host
 Unity (vendored in `firmware/test/unity/`). Fakes in `firmware/test/fakes/`.
 No FreeRTOS dependency.
 
+### Physical simulator
+
+`firmware/test/sim/feeder_sim.c` models the auger from field measurements
+(one hole per 6.4 s on mains, 0.2 s open window, spring-back before the hole
+after a stop, start-up flicker, 70-150 mA running / ~280 mA stalled, 8.5 g
+per hole, hopper level, shared-bus contention). It reads the motor drive pins
+from the fake GPIO expander and writes the index beam, the motor current and
+bus contention back into the fakes, so the real motor task, index adapter and
+motor driver run unchanged. `test_sim_*.c` hold the scenarios; each known
+field bug, reintroduced, fails at least one of them.
+
 ### Web UI client tests
 
 ```

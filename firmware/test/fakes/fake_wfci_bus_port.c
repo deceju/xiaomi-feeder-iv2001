@@ -17,6 +17,7 @@ static bool s_held;
 static wfci_bus_profile_t s_held_profile;
 static port_err_t s_acquire_err = PORT_OK;
 static port_err_t s_try_acquire_err = PORT_ERR_BUSY;
+static bool s_contended;
 static uint32_t s_deferred_release_ms = FAKE_WFCI_DEFER_NONE;
 
 static void fake_release_internal(wfci_bus_profile_t profile)
@@ -107,6 +108,9 @@ static port_err_t fake_try_acquire(wfci_bus_profile_t profile,
     if (s_held) {
         return s_try_acquire_err;
     }
+    if (s_contended) {
+        return PORT_ERR_BUSY;
+    }
 
     return fake_grant_acquire(profile, priority);
 }
@@ -132,6 +136,7 @@ void fake_wfci_bus_reset(void)
     s_held = false;
     s_acquire_err = PORT_OK;
     s_try_acquire_err = PORT_ERR_BUSY;
+    s_contended = false;
     s_deferred_release_ms = FAKE_WFCI_DEFER_NONE;
     wfci_bus_state_set_held(WFCI_BUS_PROFILE_EXPANDER, false);
 }
@@ -177,4 +182,9 @@ const wfci_bus_port_t *fake_wfci_bus_port_get(void)
 const wfci_bus_port_t *wfci_bus_port_get(void)
 {
     return fake_wfci_bus_port_get();
+}
+
+void fake_wfci_bus_set_contended(bool contended)
+{
+    s_contended = contended;
 }
