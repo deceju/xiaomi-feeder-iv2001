@@ -1,0 +1,29 @@
+# Field log — normal boot on mains (firmware 85f499d era). Shows the boot sequence timing.
+[00:00:00.000] [app] reset reason: software
+[00:00:00.000] [wifi] wiped STA profile + PMK caches
+[00:00:00.000] [wifi] wifi_init done +0 ms
+[00:00:00.000] [wifi] stack_init complete +0 ms
+[00:00:00.001] [wifi] connecting to "LOADING_IOT" tick=1
+[00:00:00.008] [wifi] IOT_INIT_COMPLETE
+[00:00:00.102] [wifi] reload_setting tick=102
+[00:00:00.124] [wifi] waiting PORT_SECURE+DHCP tick=124
+[00:00:02.798] [wifi] session connect done +2797 ms
+[00:00:02.798] [wifi] STA ready, IP 10.20.10.73 +2797 ms
+[00:00:02.798] [time] sntp server pool.ntp.org
+[00:00:02.801] [cli] remote console listening on port 2323
+[00:00:02.801] [web] admin UI listening on port 80 (heap free 78168)
+[00:00:03.000] [time] time sync ok utc=1794221682
+[00:00:03.114] [mqtt] connecting to 10.20.30.122:1883
+[00:00:03.126] [mqtt] connected
+[00:00:03.447] [ota] device_id=768722 status_topic=petfeeder/768722/ota/status
+[00:00:03.448] [ota] status idle pct=0 err=
+[00:00:03.448] [app] bowl g 73.5
+[00:00:03.448] [app] hopper normal
+[00:00:03.448] [app] mains ON
+[00:00:03.451] [app] battery 6193 mV
+[00:00:03.451] [app] battery 100%
+[00:00:03.451] [app] timezone CET-1CEST,M3.5.0,M10.5.0/3
+[00:00:50.280] [web] /api/feed/mode rejected (err 1)
+[00:00:50.309] [web] /api/feed/overfill rejected (err 1)
+[00:00:50.328] [web] /api/config rejected (err 1)
+# The three rejections were a web bug: keyed POST reads on read+write paths were dispatched as empty writes.

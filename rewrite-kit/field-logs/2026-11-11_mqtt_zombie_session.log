@@ -1,0 +1,12 @@
+# Field log — MQTT session dead while the client still reported "connected".
+# Every publish failed every 250 ms for about an hour; nothing reconnected; the log ring held only these lines.
+# That morning two scheduled meals ended "failed" with no food; the root cause was never captured (see 08-open-questions.md).
+[00:59:46.187] [mqtt] publish failed topic=petfeeder/768722/wifi_rssi
+[00:59:46.187] [mqtt] publish failed topic=petfeeder/768722/schedule/state
+[00:59:46.188] [mqtt] publish failed topic=petfeeder/768722/schedule/next
+[00:59:46.438] [mqtt] publish failed topic=petfeeder/768722/wifi_rssi
+[00:59:46.438] [mqtt] publish failed topic=petfeeder/768722/schedule/state
+[00:59:46.439] [mqtt] publish failed topic=petfeeder/768722/schedule/next
+[00:59:46.689] [mqtt] publish failed topic=petfeeder/768722/wifi_rssi
+[00:59:46.689] [mqtt] publish failed topic=petfeeder/768722/schedule/state
+[00:59:46.690] [mqtt] publish failed topic=petfeeder/768722/schedule/next

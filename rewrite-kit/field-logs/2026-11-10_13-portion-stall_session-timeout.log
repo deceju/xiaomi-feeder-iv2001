@@ -1,0 +1,49 @@
+# Field log — 13-portion dispense, stall at +25 s, anti-jam cut by the 20 s motor limit
+# Firmware: b3ae888 predecessor (motor session limit bug). Mains. Kibble: dog food.
+# Expected after fix: anti-jam retries run under the burst session limit.
+--- this boot ---
+
+[00:04:14.852] [motor] beam closed +609 ms
+[00:04:15.300] [motor] run +1056 ms beam closed polls ok 16 busy 0 err 0 load 114 mA
+[00:04:16.329] [motor] run +2085 ms beam closed polls ok 16 busy 0 err 0 load 111 mA
+[00:04:17.359] [motor] run +3111 ms beam closed polls ok 16 busy 0 err 0 load 90 mA
+[00:04:18.384] [motor] run +4140 ms beam closed polls ok 16 busy 0 err 0 load 94 mA
+[00:04:19.414] [motor] run +5170 ms beam closed polls ok 16 busy 0 err 0 load 92 mA
+[00:04:20.442] [motor] run +6198 ms beam closed polls ok 16 busy 0 err 0 load 97 mA
+[00:04:20.957] [motor] beam open +6711 ms
+[00:04:20.957] [motor] pulse 1
+[00:04:21.212] [motor] beam closed +6969 ms
+[00:04:21.471] [motor] run +7227 ms beam closed polls ok 16 busy 0 err 0 load 120 mA
+[00:04:22.500] [motor] run +8256 ms beam closed polls ok 16 busy 0 err 0 load 113 mA
+[00:04:23.531] [motor] run +9287 ms beam closed polls ok 16 busy 0 err 0 load 89 mA
+[00:04:24.558] [motor] run +10311 ms beam closed polls ok 16 busy 0 err 0 load 124 mA
+[00:04:25.584] [motor] run +11340 ms beam closed polls ok 16 busy 0 err 0 load 97 mA
+[00:04:26.613] [motor] run +12369 ms beam closed polls ok 16 busy 0 err 0 load 90 mA
+[00:04:27.449] [motor] beam open +13206 ms
+[00:04:27.449] [motor] pulse 2
+[00:04:27.642] [motor] run +13398 ms beam open polls ok 16 busy 0 err 0 load 128 mA
+[00:04:27.771] [motor] beam closed +13528 ms
+[00:04:28.671] [motor] run +14427 ms beam closed polls ok 16 busy 0 err 0 load 105 mA
+[00:04:29.700] [motor] run +15456 ms beam closed polls ok 16 busy 0 err 0 load 125 mA
+[00:04:30.729] [motor] run +16485 ms beam closed polls ok 16 busy 0 err 0 load 68 mA
+[00:04:31.758] [motor] run +17511 ms beam closed polls ok 16 busy 0 err 0 load 105 mA
+[00:04:32.784] [motor] run +18540 ms beam closed polls ok 16 busy 0 err 0 load 78 mA
+[00:04:33.813] [motor] run +19569 ms beam closed polls ok 16 busy 0 err 0 load 108 mA
+[00:04:33.878] [motor] beam open +19635 ms
+[00:04:33.878] [motor] pulse 3
+[00:04:34.071] [motor] beam closed +19828 ms
+[00:04:34.842] [motor] run +20598 ms beam closed polls ok 16 busy 0 err 0 load 121 mA
+[00:04:35.871] [motor] run +21627 ms beam closed polls ok 16 busy 0 err 0 load 77 mA
+[00:04:36.900] [motor] run +22656 ms beam closed polls ok 16 busy 0 err 0 load 98 mA
+[00:04:37.929] [motor] run +23685 ms beam closed polls ok 16 busy 0 err 0 load 119 mA
+[00:04:38.958] [motor] run +24711 ms beam closed polls ok 16 busy 0 err 0 load 209 mA
+[00:04:39.984] [motor] run +25740 ms beam closed polls ok 16 busy 0 err 0 load 282 mA
+[00:04:41.013] [motor] run +26769 ms beam closed polls ok 16 busy 0 err 0 load 280 mA
+[00:04:41.333] [motor] jam: stall 278 mA for 2000 ms without turning (>= 220 mA)
+[00:04:41.333] [motor] antijam: retry 1/3 reverse 1000 ms
+[00:04:41.443] [motor] stuck: session timeout (20000 ms)
+[00:04:44.554] [app] bowl g 90.1
+[00:04:44.554] [dispense] settle: base 539 post 901 dg (valid 1/1) measured 1 portions 13 batch 1
+[00:04:44.555] [mqtt] dispense event g=36 est=0 outcome=stuck
+[00:04:44.667] [app] bowl g 90.1
+[00:05:03.565] [app] battery 6193 mV
