@@ -6,6 +6,7 @@
 #include "board_gpio_iv2001.h"
 #include "fake_adc_port.h"
 #include "fake_gpio_expander_port.h"
+#include "fake_weight_port.h"
 #include "fake_time.h"
 #include "fake_wfci_bus_port.h"
 #include "motor_ctrl.h"
@@ -23,6 +24,10 @@ static uint32_t s_now;
 static uint32_t s_flicker_until;
 static uint32_t s_rng;
 static uint32_t s_reverses_in_jam;
+static int32_t s_food_dg;
+static uint32_t s_sim_ms;
+#define SIM_FALL_SLOTS 16u
+static struct { uint32_t at; int32_t dg; } s_falling[SIM_FALL_SLOTS];
 
 feeder_sim_cfg_t feeder_sim_default_cfg(void)
 {
@@ -45,6 +50,13 @@ feeder_sim_cfg_t feeder_sim_default_cfg(void)
     cfg.hopper_dg = 100000u;
     cfg.busy_pct = 0u;
     cfg.seed = 1u;
+    cfg.scale = false;
+    cfg.bowl_present = true;
+    cfg.bowl_dg = 1000;
+    cfg.food_dg = 0;
+    cfg.fall_ms = 400u;
+    cfg.eat_at_ms = FEEDER_SIM_NEVER;
+    cfg.eat_dg = 0;
     return cfg;
 }
 
@@ -97,8 +109,17 @@ static void sim_drop_kibble(int64_t hole)
     s_cfg.hopper_dg -= dg;
     s_last_hole = hole;
     if (dg > 0u) {
+        unsigned k;
+
         s_stats.holes_dropped++;
         s_stats.dropped_dg += dg;
+        for (k = 0u; k < SIM_FALL_SLOTS; k++) {
+            if (s_falling[k].dg == 0) {
+                s_falling[k].at = s_sim_ms + s_cfg.fall_ms;
+                s_falling[k].dg = (int32_t)dg;
+                break;
+            }
+        }
     }
 }
 
@@ -107,6 +128,23 @@ static void sim_move(uint32_t dt)
     uint32_t i;
 
     for (i = 0u; i < dt; i++) {
+        unsigned k;
+
+        s_sim_ms++;
+        for (k = 0u; k < SIM_FALL_SLOTS; k++) {
+            if (s_falling[k].dg != 0 && s_sim_ms >= s_falling[k].at) {
+                if (s_cfg.bowl_present) {
+                    s_food_dg += s_falling[k].dg;   /* missing bowl: it falls on the floor */
+                }
+                s_falling[k].dg = 0;
+            }
+        }
+        if (s_cfg.eat_at_ms != FEEDER_SIM_NEVER && s_sim_ms >= s_cfg.eat_at_ms) {
+            int32_t eat = s_cfg.eat_dg < s_food_dg ? s_cfg.eat_dg : s_food_dg;
+
+            s_food_dg -= eat;
+            s_cfg.eat_at_ms = FEEDER_SIM_NEVER;
+        }
         if (s_drive == SIM_FWD) {
             if (!s_stats.jammed && s_cfg.jam_at_ms != FEEDER_SIM_NEVER &&
                 s_stats.forward_ms >= s_cfg.jam_at_ms) {
@@ -188,6 +226,10 @@ static void sim_publish_sensors(void)
 
     fake_wfci_bus_set_contended(s_cfg.busy_pct > 0u &&
                                 (sim_rand() % 100u) < s_cfg.busy_pct);
+
+    if (s_cfg.scale) {
+        fake_weight_port_set_read_dg(s_cfg.bowl_present ? s_food_dg : -s_cfg.bowl_dg);
+    }
 }
 
 static void sim_sync_clock(void)
@@ -212,6 +254,9 @@ void feeder_sim_begin(const feeder_sim_cfg_t *cfg)
     s_flicker_until = 0u;
     s_rng = s_cfg.seed;
     s_reverses_in_jam = 0u;
+    s_food_dg = s_cfg.food_dg;
+    s_sim_ms = 0u;
+    memset(s_falling, 0, sizeof(s_falling));
     sim_publish_sensors();
 }
 
@@ -252,6 +297,16 @@ void feeder_sim_run_ms(uint32_t ms)
         feeder_sim_step();
     }
     sim_sync_clock();
+}
+
+int32_t feeder_sim_food_dg(void)
+{
+    return s_food_dg;
+}
+
+void feeder_sim_set_bowl_present(bool present)
+{
+    s_cfg.bowl_present = present;
 }
 
 feeder_sim_stats_t feeder_sim_stats(void)

@@ -113,8 +113,10 @@ date; while the clock is unknown, records with `day` 0). Before a job starts:
   (MQTT/web/button) is accepted and then refused at start: the refusal shows in
   the history and the Problem state.
 - otherwise, when the target exceeds the remaining allowance, it is reduced to
-  `max(1, floor(remaining / portion size))` portions, E6 is raised and the job
-  runs.
+  `floor(remaining / portion size)` portions, E6 is raised and the job runs.
+  When less than one portion is left the job is refused as above.
+- A shortened gram job aims at the remaining allowance: compensation top-ups
+  never go past it. The limit is a ceiling; the day's total does not exceed it.
 
 Settable with `cmd/feed_limit {"daily_max_g":N}`; state retained on
 `.../feed/limit` `{"daily_max_g":N,"today_g":G}`. HA `number` *Daily limit*

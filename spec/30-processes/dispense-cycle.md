@@ -69,6 +69,13 @@ After motor completion (success or stuck), before the job ends:
 While settling, `dispense_is_active()` remains true (dispensing pictograph
 blinks). Job completion is **not** tied to `EVT_BURST_DONE` alone.
 
+**Eating during the settle.** Kibble only adds weight, so the job samples the
+scale (non-blocking) on every tick of the settle and keeps the highest
+reading. When the final reading is ≥ 3 g below it, the pet ate during the
+settle: the difference is added to what fell for the rest of the job (a
+compensation top-up never replaces what was eaten), and the job does not
+teach the portion estimate.
+
 When scale reads fail or `bowl_error` is active, the event still fires with
 `grams_estimated: true` and motor fallback `grams = portions × 10`.
 

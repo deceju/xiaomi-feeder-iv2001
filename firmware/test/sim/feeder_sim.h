@@ -32,6 +32,16 @@ typedef struct {
     uint32_t hopper_dg;         /* kibble left; 0 = empty */
     uint8_t busy_pct;           /* chance that a bus loan is refused at a given tick */
     uint32_t seed;
+    /* Scale: zeroed with the empty bowl on it, so it reads the food, or minus
+     * the bowl mass when the bowl is off. */
+    bool scale;                 /* drive the fake weight port */
+    bool bowl_present;
+    int32_t bowl_dg;            /* empty bowl mass */
+    int32_t food_dg;            /* food already in the bowl */
+    uint32_t fall_ms;           /* kibble reaches the bowl this long after the hole */
+    /* The dog: eats eat_dg at eat_at_ms (sim time), once. */
+    uint32_t eat_at_ms;
+    int32_t eat_dg;
 } feeder_sim_cfg_t;
 
 typedef struct {
@@ -61,6 +71,8 @@ void feeder_sim_run_ms(uint32_t ms);
 void feeder_sim_step(void);
 
 feeder_sim_stats_t feeder_sim_stats(void);
+int32_t feeder_sim_food_dg(void);
+void feeder_sim_set_bowl_present(bool present);
 bool feeder_sim_beam_open(void);
 
 #endif /* FEEDER_SIM_H */

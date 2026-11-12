@@ -56,6 +56,11 @@ static bool s_cal_requested;       /* next portions job is a portion calibration
 static bool s_portion_cal;         /* current job is a portion calibration */
 static uint16_t s_target_grams;
 static weight_dg_t s_target_dg;
+static bool s_capped;          /* target cut by the daily limit */
+static weight_dg_t s_settle_peak_dg;  /* highest reading while settling */
+static bool s_settle_peak_valid;
+static bool s_disturbed;       /* the pet ate during the job: no learning */
+static weight_dg_t s_eaten_dg;  /* eaten during this job, added back to what fell */
 static bool s_gram_job;
 static dispense_mode_t s_mode;
 static uint8_t s_batch_count;
@@ -173,7 +178,12 @@ static bool dispense_limit_gate(dispense_source_t src, uint16_t want_g, uint8_t 
     if (want_dg > (uint32_t)WEIGHT_G_TO_DG(rem)) {
         uint32_t p = (uint32_t)WEIGHT_G_TO_DG(rem) / (uint32_t)est;
 
-        *portions_io = (uint8_t)(p < 1u ? 1u : p);
+        /* The limit is a ceiling: less than a portion left is nothing left. */
+        if (p == 0u) {
+            dispense_record_refused(src, want_g);
+            return false;
+        }
+        *portions_io = (uint8_t)p;
         problem_raise(PROBLEM_DAILY_LIMIT, "meal shortened");
         app_log_info("dispense", "daily limit: %lu g left, %u portion(s)",
                      (unsigned long)rem, (unsigned)*portions_io);
@@ -233,7 +243,8 @@ static void dispense_after_job(uint32_t now_ms, int32_t grams, bool measured, in
         problem_clear(PROBLEM_FEED_FAILED);
     }
 
-    if (!was_calibration && measured && s_outcome == DISPENSE_OUTCOME_SUCCESS && raw_delta > 0 &&
+    if (!was_calibration && !s_disturbed && measured && s_outcome == DISPENSE_OUTCOME_SUCCESS &&
+        raw_delta > 0 &&
         portion_estimate_learn((weight_dg_t)raw_delta, s_total_portions)) {
         mqtt_portion_sync();
     }
@@ -516,7 +527,16 @@ static void dispense_after_settle(uint32_t now_ms)
     if (post_valid) {
         auto_tare_anchor(post_dg);
         app_bowl_dg_notify_read(post_dg, true, now_ms);
+        if (s_settle_peak_valid && s_settle_peak_dg - post_dg >= DISPENSE_EATING_DROP_DG) {
+            app_log_info("dispense", "eating during settle: %ld dg eaten",
+                         (long)(s_settle_peak_dg - post_dg));
+            s_disturbed = true;
+            s_eaten_dg += s_settle_peak_dg - post_dg;
+        }
+        /* What fell = what the bowl holds + what was eaten during the job. */
+        post_dg += s_eaten_dg;
     }
+    s_settle_peak_valid = false;
 
     measured = s_baseline_valid && post_valid &&
                dispense_scale_trusted(s_baseline_dg, s_baseline_valid) &&
@@ -594,6 +614,15 @@ static void dispense_after_settle(uint32_t now_ms)
         extra = portion_estimate_portions_for_dg(deficit_dg, DISPENSE_PORTIONS_MAX);
         if (extra < 1u) {
             extra = 1u;
+        }
+        /* Under the daily limit a top-up never goes past what is left. */
+        if (s_capped) {
+            extra = (uint8_t)(deficit_dg / portion_estimate_dg());
+            if (extra == 0u) {
+                s_outcome = DISPENSE_OUTCOME_SUCCESS;
+                dispense_publish_terminal(now_ms, event_grams, measured, raw_delta_dg);
+                return;
+            }
         }
         if (extra > DISPENSE_PORTIONS_MAX) {
             extra = DISPENSE_PORTIONS_MAX;
@@ -754,7 +783,22 @@ void dispense_start_from_request(const app_dispense_request_t *req)
         dispense_job_stats_begin();
 
         s_target_grams = grams;
-        s_target_dg = WEIGHT_G_TO_DG(grams);
+        s_capped = false;
+        s_disturbed = false;
+        s_settle_peak_valid = false;
+        s_eaten_dg = 0;
+        {
+            uint32_t rem;
+
+            /* A meal shortened by the daily limit aims at what is left, so
+             * compensation does not top it back up past the limit. */
+            if (req->source != DISPENSE_SOURCE_UART && feed_limit_remaining_g(&rem) &&
+                rem < (uint32_t)grams) {
+                s_target_grams = (uint16_t)rem;
+                s_capped = true;
+            }
+        }
+        s_target_dg = WEIGHT_G_TO_DG(s_target_grams);
         s_gram_job = true;
         s_portions = portions;
         s_total_portions = portions;
@@ -823,6 +867,10 @@ void dispense_start_from_request(const app_dispense_request_t *req)
     s_portions = portions;
     s_total_portions = portions;
     s_batch_portions = portions;
+    s_capped = false;
+    s_disturbed = false;
+    s_settle_peak_valid = false;
+    s_eaten_dg = 0;
     s_target_dg = (weight_dg_t)portions * portion_estimate_dg();
     s_target_grams = (uint16_t)WEIGHT_DG_TO_G_ROUND(s_target_dg);
     s_source = req->source;
@@ -879,12 +927,29 @@ bool dispense_on_motor_fault(void)
     return true;
 }
 
+/* Watch the bowl while it settles: kibble only adds weight, so a reading
+ * clearly below the highest one means the pet is eating. */
+static void dispense_track_settle_peak(void)
+{
+    const weight_port_t *wp = weight_port_get();
+    weight_dg_t dg;
+
+    if (wp == NULL || wp->try_read_dg == NULL || wp->try_read_dg(&dg) != PORT_OK) {
+        return;
+    }
+    if (!s_settle_peak_valid || dg > s_settle_peak_dg) {
+        s_settle_peak_dg = dg;
+        s_settle_peak_valid = true;
+    }
+}
+
 void dispense_poll(uint32_t now_ms)
 {
     if (s_phase != DISPENSE_PHASE_SETTLE) {
         return;
     }
 
+    dispense_track_settle_peak();
     if (s_settle_start_ms == 0u) {
         s_settle_start_ms = now_ms;
         return;
@@ -915,6 +980,10 @@ void dispense_test_reset(void)
     s_total_portions = 0u;
     s_batch_portions = 0u;
     s_gram_job = false;
+    s_capped = false;
+    s_disturbed = false;
+    s_settle_peak_valid = false;
+    s_eaten_dg = 0;
     s_mode = DISPENSE_MODE_OPEN_LOOP;
     s_batch_count = 0u;
     s_target_grams = 0u;

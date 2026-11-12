@@ -220,6 +220,7 @@ $(RUNNER): $(TEST_SRCS) Makefile | $(BUILD)
 	@echo 'extern void motor_index_port_host_reset(void);' >> $@
 	@echo 'extern void fake_wfci_bus_reset(void);' >> $@
 	@echo 'extern void gpio_expander_loan_end(void);' >> $@
+	@echo 'extern void mqtt_outbox_reset(void);' >> $@
 	@for f in $(TEST_SRCS); do \
 		grep -h '^void test_' $$f 2>/dev/null \
 			| sed 's/void \(test_[^(]*\)(.*/extern void \1(void);/'; \
@@ -231,6 +232,7 @@ $(RUNNER): $(TEST_SRCS) Makefile | $(BUILD)
 	@echo '    motor_index_port_host_reset();' >> $@
 	@echo '    fake_wfci_bus_reset();' >> $@
 	@echo '    gpio_expander_loan_end();' >> $@
+	@echo '    mqtt_outbox_reset();' >> $@
 	@echo '}' >> $@
 	@echo 'void tearDown(void) {}' >> $@
 	@echo '' >> $@
