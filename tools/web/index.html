@@ -1407,7 +1407,7 @@ function toast(text, ok) {
   s.className = ok ? 'ok' : text ? 'err' : '';
 }
 function badge(text, tone) {
-  return `<span class="badge ${tone}">${text}</span>`;
+  return `<span class="badge ${esc(tone)}">${esc(text)}</span>`;
 }
 function showTab(name) {
   const el = $('tab-' + name);
@@ -1474,7 +1474,7 @@ function renderStatus(st) {
   progressActive = !!prog;
   $('statusAlerts').innerHTML = formatStatusAlerts(st).map((a) => badge(T(a.text), a.tone)).join(' ');
   $('stateGrid').innerHTML = statusStateRows(st)
-    .map((r) => `<div class="state-item"><dt class="eyebrow">${T(r.label)}</dt><dd class="${r.tone}">${T(r.value)}</dd></div>`)
+    .map((r) => `<div class="state-item"><dt class="eyebrow">${esc(T(r.label))}</dt><dd class="${esc(r.tone)}">${esc(T(r.value))}</dd></div>`)
     .join('');
   $('deviceTime').textContent = formatDeviceTime(st);
   $('sysTime').textContent = formatDeviceTime(st);
@@ -1586,7 +1586,7 @@ function renderSettings(st) {
       ['Last reset', T(h.reset)],
       ['Battery voltage', st.battery_mv ? `${(st.battery_mv / 1000).toFixed(2)} V` : '—'],
       ['Hopper IR beam', st.hopper_ir ? T(st.hopper_ir) : '—'],
-    ].map(([k, v]) => `<div class="kv"><span>${T(k)}</span><b>${v}</b></div>`).join('');
+    ].map(([k, v]) => `<div class="kv"><span>${esc(T(k))}</span><b>${esc(v)}</b></div>`).join('');
   }
 }
 async function loadHistory() {
@@ -1594,7 +1594,7 @@ async function loadHistory() {
   if (!Array.isArray(rows)) return;
   $('histList').innerHTML = rows.length ? rows.map((r) => {
     const f = formatHistoryRow(r);
-    return `<div class="h"><div class="row between"><span>${f.when} · ${T(f.source)} · ${T(f.want)} → ${T(f.got)}</span>${badge(T(f.result), f.tone)}</div><small>${f.detail.split(' · ').map(T).join(' · ')}</small></div>`;
+    return `<div class="h"><div class="row between"><span>${esc(f.when)} · ${esc(T(f.source))} · ${esc(T(f.want))} → ${esc(T(f.got))}</span>${badge(T(f.result), f.tone)}</div><small>${esc(f.detail.split(' · ').map(T).join(' · '))}</small></div>`;
   }).join('') : `<p class="hint">${T('No meal yet.')}</p>`;
 }
 function renderOnce(st) {
@@ -1642,7 +1642,7 @@ async function loadSchedule() {
     const skipCtrl = slotSkipControl(s, deviceLocalTime);
     card.innerHTML = `<div class="slot-main">
 <div class="slot-top row between">
-<span class="slot-when">${formatSlotSummary(s.time, s.g)}</span>
+<span class="slot-when">${esc(formatSlotSummary(s.time, s.g))}</span>
 ${badge(T(formatSlotState(s.state)), slotStateTone(s.state))}
 </div>
 <div class="day-dots">${slotDayBadges(s.repeat_days, todayDow).map((d) =>

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+  esc,
     DAYS,
     ALL_DAYS_MASK,
     apiContentType,
@@ -274,4 +275,13 @@ describe('api helpers', () => {
         });
         assert.deepEqual(buildFeedOverfillBody({ enabled: false }), { enabled: false });
     });
+});
+
+describe('esc', () => {
+  it('neutralises markup from the device', () => {
+  assert.equal(esc('<img src=x onerror=alert(1)>'), '&lt;img src=x onerror=alert(1)&gt;');
+  assert.equal(esc('a "b" & \'c\''), 'a &quot;b&quot; &amp; &#39;c&#39;');
+  assert.equal(esc(undefined), '');
+  assert.equal(esc(42), '42');
+  });
 });

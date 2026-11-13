@@ -29,6 +29,8 @@ void app_log_warn(const char *tag, const char *fmt, ...) APP_LOG_PRINTF_FMT;
 void app_log_error(const char *tag, const char *fmt, ...) APP_LOG_PRINTF_FMT;
 void app_log_set_sink(void (*fn)(const char *buf, size_t len, void *ctx), void *ctx);
 void app_log_clear_sink(void);
+/* From the exception handler: note a crash in the retained log (no locks). */
+void app_log_crash_note(const char *what);
 
 #define APP_LOG_D(tag, ...) app_log_debug(tag, __VA_ARGS__)
 #define APP_LOG_I(tag, ...) app_log_info(tag, __VA_ARGS__)

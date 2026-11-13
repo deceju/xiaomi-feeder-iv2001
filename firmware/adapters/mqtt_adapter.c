@@ -3,6 +3,7 @@
  */
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 
 #include "MQTTClient.h"
@@ -97,6 +98,20 @@ static void mqtt_adapter_message_arrived(MessageData *md)
     topic = md->topicName;
     if (topic == NULL || message == NULL) {
         return;
+    }
+
+    /* QoS 1 redelivery of the message just handled (lost PUBACK): a command
+     * such as cmd/dispense must not run twice. */
+    if (message->qos == QOS1) {
+        static unsigned short s_last_id;
+        static bool s_last_valid;
+
+        if (message->dup && s_last_valid && message->id == s_last_id) {
+            APP_LOG_I("mqtt", "duplicate message %u dropped", (unsigned)message->id);
+            return;
+        }
+        s_last_id = message->id;
+        s_last_valid = true;
     }
 
     if (topic->cstring != NULL) {

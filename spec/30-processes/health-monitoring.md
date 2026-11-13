@@ -143,3 +143,11 @@ the `mqtt_io` task checks `app`. A heartbeat unchanged for `[tune]` 60 s logs
 `[watch] task <name> stalled <n> s` once, increments `stalls` and raises E9.
 Nothing restarts the device: the user reboots when they choose. A task that
 resumes logs `[watch] task <name> resumed`.
+
+## Crash note
+
+An exception callback (`crash_hook_adapter.c`, registered at boot) writes
+`[crash] <task name>` into the retained log ring before the SDK exception
+handler resets the chip. No locks, no formatting. The next boot shows it at
+the end of the previous-boot log, so a reboot caused by a crash is told apart
+from a watchdog reset or a requested reboot.

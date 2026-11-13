@@ -503,3 +503,10 @@ export function errorWords(code) {
         busy: 'feeder busy', rejected: 'not accepted',
     }[code] || code;
 }
+
+/* Text from the device inserted into HTML templates: never markup. */
+export function esc(text) {
+  return String(text ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}

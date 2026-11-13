@@ -115,3 +115,19 @@ void test_app_log_debug_stripped_at_info_level(void)
     TEST_ASSERT_NOT_NULL(strstr(app_log_test_last_line(), "chunk 1"));
 }
 #endif
+
+/* A crash note written from the exception handler shows in the next boot's
+ * previous-boot log. */
+void test_app_log_crash_note_survives_reboot(void)
+{
+    char prev[512];
+
+    app_log_test_reset();
+    app_log_info("motor", "burst start");
+    app_log_crash_note("motor_ctrl");
+    app_log_test_soft_reboot();
+    app_log_info("app", "boot");
+    TEST_ASSERT_TRUE(app_log_prev_copy(prev, sizeof(prev)) > 0u);
+    TEST_ASSERT_NOT_NULL(strstr(prev, "[crash] motor_ctrl"));
+    TEST_ASSERT_NOT_NULL(strstr(prev, "burst start"));
+}

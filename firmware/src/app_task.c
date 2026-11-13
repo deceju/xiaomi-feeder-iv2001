@@ -16,6 +16,7 @@
 #include "app_event_port.h"
 #include "aw9523_irq_adapter.h"
 #include "wdt_adapter.h"
+#include "crash_hook_adapter.h"
 #include "button_input.h"
 #include "button_port.h"
 #include "hopper_input.h"
@@ -146,6 +147,7 @@ void app_start(void)
     app_lock_init();
     app_event_port_init();
     wdt_adapter_log_reset_reason();
+    crash_hook_adapter_init();
     feed_counter_inc(FEED_COUNTER_BOOTS);
     display_settings_migrate();
     time_sync_init();

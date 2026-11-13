@@ -74,6 +74,11 @@ event; the retained `.../dispense/progress` topic is a best-effort live view.
 | `.../cmd/feed_limit` | `{"daily_max_g":N}` and/or `{"not_eaten_h":N}` | 1 |
 | `.../cmd/dispense_amount` | `{"g": 25}` (5–150; `0` = one portion) — see [Dispense amount](#dispense-amount) | 1 |
 
+Commands are subscribed at QoS 1 with a clean session. A QoS 1 message the
+broker redelivers (DUP flag set, same packet id as the message just handled,
+after a lost PUBACK) is dropped and logged, so a command such as
+`cmd/dispense` never runs twice.
+
 ### Reboot command
 
 `cmd/reboot` restarts the whole device. Payload is ignored (`{}`).

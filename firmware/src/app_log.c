@@ -121,6 +121,33 @@ static void app_log_ring_push(const char *buf, size_t len)
 #endif
 }
 
+/* Exception context: no locks, no formatting. Appends "[crash] <what>" to
+ * the retained ring so the next boot's previous-boot log shows the cause. */
+void app_log_crash_note(const char *what)
+{
+    static const char tag[] = "\n[crash] ";
+    size_t i;
+
+    if (s_keep.magic != APP_LOG_KEEP_MAGIC) {
+        return;
+    }
+    for (i = 0u; tag[i] != '\0'; i++) {
+        s_keep.ring[s_keep.head] = tag[i];
+        s_keep.head = (s_keep.head + 1u) % APP_LOG_RING_SIZE;
+        s_keep.wrapped |= (s_keep.head == 0u) ? 1u : 0u;
+    }
+    for (i = 0u; what != NULL && what[i] != '\0' && i < 48u; i++) {
+        char c = what[i];
+
+        s_keep.ring[s_keep.head] = (c < 0x20 || c > 0x7E) ? '?' : c;
+        s_keep.head = (s_keep.head + 1u) % APP_LOG_RING_SIZE;
+        s_keep.wrapped |= (s_keep.head == 0u) ? 1u : 0u;
+    }
+    s_keep.ring[s_keep.head] = '\n';
+    s_keep.head = (s_keep.head + 1u) % APP_LOG_RING_SIZE;
+    s_keep.wrapped |= (s_keep.head == 0u) ? 1u : 0u;
+}
+
 size_t app_log_ring_copy(char *out, size_t len)
 {
     size_t n = 0u;
