@@ -21,6 +21,7 @@ the device is understood.
 | [07-lessons-and-regressions.md](07-lessons-and-regressions.md) | Every bug met in the field, its root cause, and the regression test the rewrite must ship with. |
 | [08-open-questions.md](08-open-questions.md) | What is still unknown and how to find out on the device. |
 | [09-rewrite-plan.md](09-rewrite-plan.md) | Phases, milestones, review loop, prompts for the coding agent. |
+| [10-status.md](10-status.md) | What the `rewrite` branch already did, and what was left out on purpose. |
 | `field-logs/` | Real device logs, used as simulator fixtures. |
 
 ## Ground rules for the coding agent
