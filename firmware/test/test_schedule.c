@@ -687,3 +687,76 @@ void test_schedule_feed_next_none_left_today(void)
     TEST_ASSERT_EQUAL(SCHEDULE_FEED_NEXT_NONE, schedule_feed_next());
     TEST_ASSERT_EQUAL_UINT(0u, s_fire_calls);
 }
+
+static void schedule_test_add(uint8_t hour, uint8_t min)
+{
+    schedule_slot_config_t slot = {
+        .hour = hour,
+        .min = min,
+        .g = 20u,
+        .enabled = true,
+        .days = 0x7Fu,
+    };
+
+    TEST_ASSERT_TRUE(schedule_set_slot(&slot));
+}
+
+/* A 00:00 meal fires on the poll that starts the new day. */
+void test_schedule_midnight_slot_fires(void)
+{
+    setup_schedule_synced(SCHEDULE_TEST_EPOCH_THU_08_00_UTC + 16LL * 3600LL - 60LL); /* 23:59 */
+    schedule_test_add(0u, 0u);
+    schedule_poll(0u);
+    TEST_ASSERT_EQUAL_UINT(0u, s_fire_calls);
+
+    fake_time_port_set_epoch(SCHEDULE_TEST_EPOCH_THU_08_00_UTC + 16LL * 3600LL);  /* 00:00 */
+    schedule_poll(1000u);
+    schedule_poll(2000u);
+    TEST_ASSERT_EQUAL_UINT(1u, s_fire_calls);
+    TEST_ASSERT_EQUAL_UINT(0u, s_fire_hour);
+    TEST_ASSERT_EQUAL_UINT(0u, s_fire_min);
+}
+
+/* The clock jumps forward over a slot (summer time, NTP step): served once. */
+void test_schedule_forward_jump_serves_skipped_slot(void)
+{
+    setup_schedule_synced(SCHEDULE_TEST_EPOCH_THU_08_00_UTC - 3600LL * 7LL + 59LL * 60LL); /* 01:59 */
+    schedule_test_add(2u, 30u);
+    schedule_poll(0u);
+
+    fake_time_port_set_epoch(SCHEDULE_TEST_EPOCH_THU_08_00_UTC - 3600LL * 5LL); /* 03:00 */
+    schedule_poll(1000u);
+    TEST_ASSERT_EQUAL_UINT(1u, s_fire_calls);
+    TEST_ASSERT_EQUAL_UINT(2u, s_fire_hour);
+    TEST_ASSERT_EQUAL_UINT(30u, s_fire_min);
+
+    fake_time_port_set_epoch(SCHEDULE_TEST_EPOCH_THU_08_00_UTC - 3600LL * 5LL + 60LL);
+    schedule_poll(2000u);
+    TEST_ASSERT_EQUAL_UINT(1u, s_fire_calls);
+}
+
+/* The clock goes back over a served slot (winter time): not served again. */
+void test_schedule_backward_jump_does_not_refire(void)
+{
+    setup_schedule_synced(SCHEDULE_TEST_EPOCH_THU_08_00_UTC - 3600LL * 6LL + 30LL * 60LL); /* 02:30 */
+    schedule_test_add(2u, 30u);
+    schedule_poll(0u);
+    TEST_ASSERT_EQUAL_UINT(1u, s_fire_calls);
+
+    fake_time_port_set_epoch(SCHEDULE_TEST_EPOCH_THU_08_00_UTC - 3600LL * 6LL + 59LL * 60LL);
+    schedule_poll(1000u);
+    fake_time_port_set_epoch(SCHEDULE_TEST_EPOCH_THU_08_00_UTC - 3600LL * 6LL); /* back to 02:00 */
+    schedule_poll(2000u);
+    fake_time_port_set_epoch(SCHEDULE_TEST_EPOCH_THU_08_00_UTC - 3600LL * 6LL + 30LL * 60LL);
+    schedule_poll(3000u);
+    TEST_ASSERT_EQUAL_UINT(1u, s_fire_calls);
+}
+
+/* After a restart, a slot earlier today is missed, not caught up. */
+void test_schedule_no_catch_up_after_restart(void)
+{
+    setup_schedule_synced(SCHEDULE_TEST_EPOCH_THU_08_00_UTC + 600LL); /* 08:10 */
+    schedule_test_add(8u, 5u);
+    schedule_poll(0u);
+    TEST_ASSERT_EQUAL_UINT(0u, s_fire_calls);
+}

@@ -367,7 +367,11 @@ static void schedule_mark_missed_before(uint16_t now_min, uint8_t wday_mon0)
     }
 }
 
-static void schedule_try_fire_current(const time_local_t *now)
+/* Fire the slots whose time lies in [lo_min, hi_min] today: the minutes the
+ * clock went through since the last poll. A forward jump (summer time, an
+ * NTP correction) then still serves a slot inside the jump, and the 00:00
+ * slot is served on the poll that starts the day. */
+static void schedule_try_fire_window(const time_local_t *now, uint16_t lo_min, uint16_t hi_min)
 {
     size_t i;
 
@@ -391,8 +395,12 @@ static void schedule_try_fire_current(const time_local_t *now)
             continue;
         }
 
-        if (entry->cfg.hour != now->hour || entry->cfg.min != now->min) {
-            continue;
+        {
+            uint16_t slot_min = schedule_minutes(entry->cfg.hour, entry->cfg.min);
+
+            if (slot_min < lo_min || slot_min > hi_min) {
+                continue;
+            }
         }
 
         result = s_fire_fn(entry->cfg.hour, entry->cfg.min, entry->cfg.g);
@@ -699,26 +707,38 @@ void schedule_poll(uint32_t now_ms)
     now_min = schedule_minutes(now.hour, now.min);
 
     if (!s_poll_clock_valid) {
+        /* Boot or first sync: only the current minute; earlier slots are
+         * missed (no catch-up after a restart). */
+        schedule_try_fire_window(&now, now_min, now_min);
         schedule_mark_missed_before(now_min, now.wday_mon0);
         s_last_yday = (uint16_t)now.day;
         s_last_hour = now.hour;
         s_last_min = now.min;
         s_poll_clock_valid = true;
-        schedule_try_fire_current(&now);
     } else if (s_last_yday != now.day) {
         schedule_reset_runtime();
         s_last_yday = (uint16_t)now.day;
         s_last_hour = now.hour;
         s_last_min = now.min;
+        schedule_try_fire_window(&now, 0u,
+                                 now_min <= SCHEDULE_JUMP_MAX_MIN ? now_min : 0u);
         schedule_notify_changed();
     } else {
+        uint16_t last_min = schedule_minutes(s_last_hour, s_last_min);
+
         minute_changed =
             (s_last_hour != now.hour) || (s_last_min != now.min);
         if (minute_changed) {
+            if (now_min > last_min && (unsigned)(now_min - last_min) <= SCHEDULE_JUMP_MAX_MIN) {
+                schedule_try_fire_window(&now, (uint16_t)(last_min + 1u), now_min);
+            } else {
+                /* Clock went back (winter time) or jumped too far: this
+                 * minute only. A slot already served today stays served. */
+                schedule_try_fire_window(&now, now_min, now_min);
+            }
             schedule_mark_missed_before(now_min, now.wday_mon0);
             s_last_hour = now.hour;
             s_last_min = now.min;
-            schedule_try_fire_current(&now);
             schedule_notify_changed();
         }
     }

@@ -13,6 +13,10 @@
 #define SCHEDULE_G_MIN       5u
 #define SCHEDULE_G_MAX       150u
 
+/* Largest clock jump (minutes) whose skipped slots are still served: the
+ * one-hour summer-time change plus a minute. */
+#define SCHEDULE_JUMP_MAX_MIN 61u
+
 typedef enum {
     SCHEDULE_STATE_PENDING = 0,
     SCHEDULE_STATE_TO_BE_SKIPPED,

@@ -105,7 +105,8 @@ and slot key matches active slot; published until midnight reset.
 - For each slot where `enabled && global_enabled && days` includes current
   weekday, `!skip_today`, and `today_enabled`:
   - If `fired_today`, skip.
-  - If `hour == current_hour && minute == current_minute`: invoke the
+  - If the slot time lies in the minutes the clock went through since the
+    previous poll — `(previous minute, current minute]` — invoke the
     registered **fire callback** (app task submits `dispense_submit_grams`
     with `DISPENSE_SOURCE_SCHEDULE`).
   - On `SCHEDULE_FIRE_OK`: set `fired_today`, `state=dispensing`, record
@@ -114,6 +115,18 @@ and slot key matches active slot; published until midnight reset.
     (terminal; no dispense job).
   - On `SCHEDULE_FIRE_BUSY` or `SCHEDULE_FIRE_REJECTED`: leave `fired_today`
     clear; mark `skipped` on minute advance if never fired.
+
+Window rules (`SCHEDULE_JUMP_MAX_MIN` = 61):
+
+- Normal ticking: the window is the current minute.
+- The clock jumps forward by up to 61 minutes (summer time, an NTP step):
+  slots inside the jump are served once, late. A 02:30 slot fires at 03:00
+  on the spring-forward night.
+- The clock goes back, or jumps forward further: the current minute only.
+- New day: the window is `[00:00, now]`, so a 00:00 slot fires on the poll
+  that starts the day.
+- First poll after boot or first time sync: the current minute only; earlier
+  slots are `skipped` (no catch-up after a restart, owner's decision).
 
 ### Overfill protection at fire time
 
